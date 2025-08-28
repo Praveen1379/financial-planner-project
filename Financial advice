@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Financial Analysis and Retirement Prediction Corpus System</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;900&display=swap" rel="stylesheet" />
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        :root {
+            --gradient-start: #020617; --gradient-mid: #0f172a; --gradient-end: #1e293b; --surface: #1f2937; --border: #374151; --primary: #f1f5f9; --secondary: #94a3b8; --accent: #22d3ee; --success: #10b981; --warning: #eab308; --danger: #ef4444; --card-shadow: 0 4px 25px rgba(0, 0, 0, 0.2);
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: "Poppins", sans-serif; color: var(--primary); min-height: 100vh; overflow: hidden; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; background-color: #020617; }
+        #backgroundCanvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; }
+        .page { position: fixed; inset: 0; display: flex; justify-content: center; align-items: center; padding: 20px; overflow-y: auto; transition: opacity 0.5s ease, visibility 0.5s; }
+        .page.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+        .content-container { text-align: center; padding: 40px; background: rgba(17, 24, 39, 0.8); backdrop-filter: blur(10px); border-radius: 24px; border: 1px solid var(--border); max-width: 600px; width: 100%; animation: fadeInDown 1s ease-out; }
+        .content-container h1 { font-size: 2.8rem; font-weight: 900; letter-spacing: -1px; margin-bottom: 24px; line-height: 1.2; color: var(--primary); }
+        .content-container .subtitle { font-size: 1.25rem; color: var(--secondary); max-width: 500px; margin: 0 auto 32px; opacity: 0; animation: fadeInUp 1s 0.5s ease-out forwards; }
+        .action-button { display: inline-block; padding: 16px 32px; font-size: 1.1rem; font-weight: 700; color: #020617; background: var(--accent); border: none; border-radius: 50px; cursor: pointer; text-decoration: none; box-shadow: 0 8px 25px rgba(34, 211, 238, 0.3); transition: all 0.3s ease; animation: fadeInUp 1s 1s ease-out forwards; opacity: 0; }
+        .action-button:hover { transform: translateY(-3px) scale(1.05); box-shadow: 0 12px 35px rgba(34, 211, 238, 0.4); }
+        .button-group { display: flex; justify-content: center; gap: 20px; margin-top: 32px; }
+        @keyframes fadeInDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .form-container { background: var(--surface); padding: 32px; border-radius: 24px; max-width: 520px; width: 100%; box-shadow: 0 20px 48px rgba(0, 0, 0, 0.4); border: 1px solid var(--border); animation: fadeIn 1s ease-out; }
+        .form-container h2 { margin: 0 0 24px 0; color: var(--primary); font-weight: 700; font-size: 1.8rem; text-align: center; }
+        .form-container form { display: flex; flex-direction: column; gap: 18px; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+        .input-group { display: flex; flex-direction: column; position: relative; }
+        .form-container label { font-weight: 500; font-size: 0.9rem; margin-bottom: 6px; display: block; color: var(--secondary); text-align: left; }
+        .form-container input[type="text"], .form-container input[type="number"], .form-container input[type="email"], .form-container input[type="password"], .form-container textarea { width: 100%; padding: 12px 14px; font-size: 1rem; border: 1px solid var(--border); border-radius: 8px; transition: all 0.3s ease; color: var(--primary); background-color: #111827; font-weight: 500; box-sizing: border-box; font-family: "Poppins", sans-serif; }
+        .form-container textarea { resize: vertical; min-height: 120px; }
+        .form-container input:focus, .form-container textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.3); outline: none; }
+        .risk-options { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 6px; }
+        .risk-options input[type="radio"] { display: none; }
+        .risk-pill { padding: 10px; border-radius: 8px; background: #374151; color: #d1d5db; font-weight: 600; font-size: 0.95rem; cursor: pointer; transition: all 0.3s ease; border: 1px solid transparent; text-align: center; }
+        .risk-pill:hover { background: #4b5563; }
+        .form-container input[type="radio"]:checked + .risk-pill { background: var(--accent); color: #111827; border-color: #67e8f9; }
+        .submit-btn { background: var(--accent); color: #111827; border: none; padding: 14px 0; font-weight: 700; font-size: 1.1rem; border-radius: 8px; cursor: pointer; box-shadow: 0 8px 25px rgba(34, 211, 238, 0.3); transition: all 0.3s ease; margin-top: 12px; }
+        .submit-btn:hover { transform: translateY(-2px); box-shadow: 0 12px 30px rgba(34, 211, 238, 0.4); }
+        .feedback-confirmation { color: var(--success); text-align: center; margin-top: 16px; font-weight: 600; }
+        #dashboardWrapper { position: fixed; inset: 0; display: flex; flex-direction: column; height: 100vh; transition: opacity 0.5s ease, visibility 0.5s; }
+        #dashboardWrapper.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+        header { background: rgba(17, 24, 39, 0.9); backdrop-filter: blur(8px); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25); display: flex; align-items: center; justify-content: space-between; padding: 0 34px; height: 68px; border-bottom: 1.2px solid var(--border); user-select:none; z-index: 5000; flex-shrink: 0; }
+        .header-quote { font-style: italic; color: var(--secondary); font-size: 1rem; max-width: 680px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .header-date { font-weight: 500; color: var(--secondary); font-size: 1rem; }
+        main { display: grid; grid-template-columns: 250px 1fr; flex-grow: 1; overflow: hidden; }
+        aside { background-color: #111827; border-right: 1px solid var(--border); display: flex; flex-direction: column; align-items: center; padding: 30px 0 18px 0; user-select:none; overflow-y: auto; scrollbar-width: none; }
+        aside::-webkit-scrollbar { display: none; }
+        .profile { text-align: center; margin-bottom: 24px; }
+        .profile-username { font-size: 1.4rem; font-weight: 700; margin-bottom: 5px; color: var(--accent); }
+        .profile-welcome { color: var(--secondary); font-style: italic; font-weight: 500; font-size: 0.95rem; }
+        nav { width: 100%; flex-grow: 1; }
+        nav button { all: unset; cursor: pointer; display: flex; align-items: center; gap: 16px; width: 86%; padding: 14px 20px; margin: 6px 0; border-radius: 12px; font-weight: 600; color: var(--secondary); font-size: 1.1rem; margin-left: 7%; text-align: left; position: relative; letter-spacing: 0.01em; transition: all 0.2s ease; }
+        nav button.active { background-color: var(--accent); color: #111827; box-shadow: 0 0 20px rgba(34, 211, 238, 0.4); }
+        nav button:hover:not(.active) { background-color: rgba(34, 211, 238, 0.1); color: var(--primary); transform: translateX(4px); }
+        nav button.active::after { content: ""; position: absolute; right: -14px; top: 50%; transform: translateY(-50%) rotate(45deg); width: 12px; height: 12px; border-width: 3px 3px 0 0; border-style: solid; border-color: var(--accent); box-shadow: 2px -2px 6px rgba(34, 211, 238, 0.3); background: transparent; pointer-events: none; z-index: 10; }
+        section.content { background: transparent; padding: 26px 34px; overflow-y: auto; }
+        .page-section { display: none; }
+        .page-section.active { display: block; animation: fadeIn 0.5s ease; }
+        .page-section h2 { text-align: center; margin-bottom: 12px; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .page-description { color: var(--secondary); margin-bottom: 28px; text-align: center; font-size: 1.1rem; line-height: 1.4; max-width: 600px; margin-left: auto; margin-right: auto; }
+        .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 24px; }
+        .dashboard-card { background: var(--surface); border-radius: 18px; border: 1.2px solid var(--border); box-shadow: var(--card-shadow); padding: 20px; display: flex; flex-direction: column; gap: 10px; min-height: 120px; position: relative; color: var(--primary); transition: transform 0.2s ease, box-shadow 0.2s ease; }
+        .dashboard-card:hover { transform: translateY(-5px); box-shadow: 0 8px 30px rgba(0,0,0,0.3); }
+        .dashboard-card .icon { font-size: 2rem; color: var(--accent); margin-bottom: 4px; }
+        .dashboard-card .card-title { font-size: 1rem; font-weight: 600; color: var(--secondary); }
+        .dashboard-card .card-value { font-size: 1.6rem; font-weight: 700; }
+        .dashboard-details-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 24px; margin-top: 24px; }
+        .dashboard-charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 24px; }
+        .chart-container { background: var(--surface); border-radius: 18px; border: 1.2px solid var(--border); box-shadow: var(--card-shadow); padding: 20px; height: 350px; }
+        .chart-container h3 { margin-top: 0; text-align: center; color: var(--secondary); font-weight: 600; }
+        .takeaways-container { margin-top: 32px; padding: 24px; background: var(--surface); border-radius: 18px; border: 1.2px solid var(--border); }
+        .takeaways-container h3 { text-align: center; color: var(--primary); margin-bottom: 20px; font-size: 1.4rem; }
+        .takeaway-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; }
+        .takeaway-card { display: flex; align-items: flex-start; gap: 16px; background: #111827; padding: 16px; border-radius: 12px; }
+        .takeaway-card i { color: var(--accent); flex-shrink: 0; margin-top: 4px; }
+        .takeaway-card p { color: var(--secondary); line-height: 1.6; font-size: 0.95rem; margin: 0;}
+        .takeaway-card p strong { color: var(--primary); font-weight: 600; }
+        .filter-buttons { display: flex; justify-content: center; gap: 18px; margin-bottom: 28px; }
+        .filter-tab { all: unset; cursor: pointer; padding: 12px 26px; border-radius: 22px; background: var(--surface); border: 2px solid var(--border); color: var(--secondary); font-weight: 700; font-size: 1.1rem; transition: all 0.2s ease; user-select: none; min-width: 110px; text-align:center; }
+        .filter-tab.active { background: var(--accent); color: #111827; border-color: var(--accent); box-shadow: 0 0 15px rgba(34, 211, 238, 0.4); }
+        .plans-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 28px; margin-bottom: 36px; }
+        .plan-card { position: relative; background: var(--surface); border-radius: 20px; border: 1.6px solid var(--border); box-shadow: var(--card-shadow); padding: 24px 24px 60px 24px; display: flex; flex-direction: column; transition: 0.22s; user-select:none; color: var(--primary); cursor: pointer; min-height: 180px; }
+        .plan-card:hover { border-color: var(--accent); box-shadow: 0 0 18px rgba(34, 211, 238, 0.3); transform: translateY(-5px); }
+        .plan-name { font-size: 1.26rem; font-weight: 700; margin-bottom: 6px; }
+        .plan-cat { color: var(--secondary); font-size: 1rem; font-weight: 600; margin-bottom: 18px; flex-grow: 1; }
+        .plan-returns { font-size: 1.05rem; color: var(--warning); font-weight: 700; }
+        .plan-rating { position: absolute; bottom: 16px; right: 16px; font-size: 1.3rem; color: var(--accent); background: rgba(34, 211, 238, 0.1); border-radius: 18px; padding: 6px 16px; font-weight: 700; box-shadow: 0 0 6px rgba(34, 211, 238, 0.3); }
+        .modal-overlay { position: fixed; inset: 0; background: rgba(17, 24, 39, 0.9); backdrop-filter: blur(5px); display: none; justify-content: center; align-items: center; z-index: 6000; animation: fadeIn 0.25s ease; }
+        .modal-overlay.visible { display: flex; }
+        .modal-content { background: var(--surface); padding: 28px 32px; border-radius: 22px; border: 2px solid var(--border); width: 480px; max-width: 90vw; position: relative; animation: slideIn 0.27s ease; box-shadow: 0 6px 28px rgba(0, 0, 0, 0.4); display: flex; flex-direction: column; }
+        .modal-title { font-size: 1.6rem; color: var(--accent); font-weight: 900; margin-bottom: 16px; text-align: center; }
+        .modal-desc { font-size: 1rem; margin-bottom: 22px; color: var(--secondary); line-height: 1.6; }
+        .modal-desc strong { color: var(--primary); display: block; margin-top: 12px; margin-bottom: 4px; }
+        #modalPieChart { height: 180px !important; margin: 12px auto 0 auto; }
+        .modal-footer-btn { margin-top: 22px; padding: 14px 28px; background: var(--accent); border-radius: 14px; border: none; color: #111827; font-weight: 700; font-size: 1.1rem; cursor: pointer; transition: background 0.3s ease, transform 0.2s ease; align-self: center; width: 75%; max-width: 220px; }
+        .modal-footer-btn:hover { background: #67e8f9; transform: scale(1.05); }
+        #reportBox { background: var(--surface); border-radius: 22px; padding: 30px 28px; max-width: 800px; margin: 20px auto 30px auto; }
+        .report-section { margin-bottom: 24px; }
+        .report-section h3 { color: var(--accent); border-bottom: 2px solid var(--border); padding-bottom: 8px; margin-bottom: 16px; font-size: 1.25rem; }
+        .report-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .report-item { background: #111827; padding: 12px; border-radius: 8px; }
+        .report-item-label { font-size: 0.9rem; color: var(--secondary); margin-bottom: 4px; }
+        .report-item-value { font-size: 1.1rem; font-weight: 600; color: var(--primary); }
+        .report-disclaimer { font-size: 0.9rem; color: var(--secondary); margin-top: 24px; text-align: center; }
+        #downloadReport { display: inline-flex; align-items: center; gap: 8px; background: var(--accent); color: #111827; border: none; padding: 12px 24px; font-weight: 700; font-size: 1.1rem; border-radius: 8px; cursor: pointer; box-shadow: 0 8px 25px rgba(34, 211, 238, 0.3); transition: all 0.3s ease; }
+        #downloadReport:hover { transform: translateY(-2px); box-shadow: 0 12px 30px rgba(34, 211, 238, 0.4); }
+        .calculator-box { background: var(--surface); padding: 24px; border-radius: 20px; border: 1px solid var(--border); max-width: 520px; margin: 0 auto; }
+        .calc-row { margin-bottom: 16px; display: flex; align-items: center; gap: 14px; }
+        .calc-label { width: 140px; font-weight: 600; color: var(--secondary); text-align: right; font-size: 0.95rem; }
+        .calc-input { flex: 1; padding: 10px 14px; border-radius: 10px; border: 1.5px solid var(--border); background: #111827; color: var(--primary); font-size: 1rem; transition: border-color 0.2s ease, box-shadow 0.2s ease; }
+        .calc-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 10px rgba(34, 211, 238, 0.3); }
+        .risk-btn { padding: 8px 18px; border-radius: 20px; border: 2px solid var(--border); background: transparent; color: var(--secondary); font-weight: 600; cursor: pointer; transition: all 0.25s ease; }
+        .risk-btn.selected, .risk-btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(34, 211, 238, 0.1); }
+        .calc-btn { width: 100%; background: var(--accent); color: #111827; padding: 12px 0; border-radius: 14px; font-weight: 700; cursor: pointer; font-size: 1.1rem; margin-top: 12px; transition: background 0.25s ease, transform 0.2s ease; border: none; }
+        .calc-btn:hover { background: #67e8f9; transform: scale(1.02); }
+        #calcResult, #inflationCalcResult { text-align: center; font-size: 1.1rem; color: var(--primary); font-weight: 600; line-height: 1.6; margin-top: 20px; background: #111827; padding: 16px; border-radius: 12px; }
+        #inflationCalcResult p { margin: 8px 0; }
+        #inflationCalcResult .future-value { color: var(--accent); }
+        .learn-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; }
+        .learn-card { background: var(--surface); border-radius: 16px; padding: 24px; border: 1px solid var(--border); transition: all 0.3s ease; }
+        .learn-card:hover { transform: translateY(-5px); border-color: var(--accent); }
+        .learn-card h3 { margin-top: 0; color: var(--accent); font-size: 1.25rem; }
+        .learn-card p { color: var(--secondary); line-height: 1.6; }
+        .custom-alert-modal { position: fixed; inset: 0; background: rgba(17, 24, 39, 0.8); backdrop-filter: blur(5px); display: flex; justify-content: center; align-items: center; z-index: 9999; opacity: 0; visibility: hidden; transition: opacity 0.3s ease; }
+        .custom-alert-modal.visible { opacity: 1; visibility: visible; }
+        .custom-alert-content { background: var(--surface); border: 2px solid var(--danger); color: var(--primary); padding: 24px; border-radius: 12px; text-align: center; max-width: 400px; animation: slideIn 0.3s ease; }
+        .custom-alert-content h3 { font-size: 1.4rem; color: var(--danger); margin-bottom: 12px; }
+        .custom-alert-content p { font-size: 1rem; margin-bottom: 20px; line-height: 1.5; }
+        .custom-alert-btn { background: var(--danger); color: #111827; padding: 10px 20px; border-radius: 8px; border: none; font-weight: 600; cursor: pointer; transition: all 0.2s ease; }
+        .custom-alert-btn:hover { background: #ef6464; }
+        @keyframes slideIn { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        @media (max-width: 1100px) { .dashboard-charts-grid { grid-template-columns: 1fr; } }
+        @media (max-width: 900px) { main { grid-template-columns: 1fr; } aside { display: none; } .calc-row { flex-direction: column; align-items: stretch; } .calc-label { width: 100%; text-align: left; margin-bottom: 6px; } }
+    </style>
+</head>
+<body>
+    <canvas id="backgroundCanvas"></canvas>
+
+    <div id="mainWelcomePage" class="page">
+        <div class="content-container">
+            <h1>Financial Analysis and Retirement Prediction Corpus System</h1>
+            <p class="subtitle">A personalized planner to help you achieve your long-term goals with confidence.</p>
+            <div class="button-group">
+                <button id="loginButton" class="action-button">Login or Sign Up</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="loginPage" class="page hidden">
+        <div class="form-container">
+            <h2>Log In to Your Account</h2>
+            <form id="loginForm">
+                <div class="input-group">
+                    <label for="loginEmail">Email</label>
+                    <input type="email" id="loginEmail" name="email" placeholder="e.g., praveen@example.com" required />
+                </div>
+                <div class="input-group">
+                    <label for="loginPassword">Password</label>
+                    <input type="password" id="loginPassword" name="password" placeholder="e.g., password123" required />
+                </div>
+                <button type="submit" class="submit-btn">Login</button>
+            </form>
+            <div style="text-align:center; margin-top: 15px;">
+                <a href="#" id="createAccountLink" style="color:var(--accent); font-weight: 600; text-decoration: none; transition: color 0.2s ease;">Create new account</a>
+            </div>
+        </div>
+    </div>
+
+    <div id="signupPage" class="page hidden">
+        <div class="form-container">
+            <h2>Create New Account</h2>
+            <form id="signupForm">
+                <div class="input-group">
+                    <label for="signupEmail">Email</label>
+                    <input type="email" id="signupEmail" name="email" placeholder="Choose an email" required />
+                </div>
+                <div class="input-group">
+                    <label for="signupPassword">Password</label>
+                    <input type="password" id="signupPassword" name="password" placeholder="Choose a password" required />
+                </div>
+                <button type="submit" class="submit-btn">Sign Up</button>
+            </form>
+            <div style="text-align:center; margin-top: 15px;">
+                <a href="#" id="backToLoginLink" style="color:var(--secondary); text-decoration: none; transition: color 0.2s ease;">Back to Log In</a>
+            </div>
+        </div>
+    </div>
+
+    <div id="detailsPage" class="page hidden">
+        <div class="form-container">
+            <h2>Your Financial Details</h2>
+            <form id="detailsForm">
+                <div class="input-group">
+                    <label for="name">Full Name</label>
+                    <input type="text" id="name" name="name" placeholder="e.g., Praveen A" required />
+                </div>
+                <div class="form-row">
+                    <div class="input-group">
+                        <label for="age">Current Age</label>
+                        <input type="number" id="age" name="age" placeholder="e.g., 30" min="18" max="80" required />
+                    </div>
+                    <div class="input-group">
+                        <label for="retirementAge">Retirement Age</label>
+                        <input type="number" id="retirementAge" name="retirementAge" placeholder="e.g., 60" min="20" max="80" required />
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="input-group">
+                        <label for="monthlyInvestment">Monthly Investment (₹)</label>
+                        <input type="number" id="monthlyInvestment" name="monthlyInvestment" placeholder="e.g., 10000" min="0" required />
+                    </div>
+                    <div class="input-group">
+                        <label for="currentSavings">Current Savings (₹)</label>
+                        <input type="number" id="currentSavings" name="currentSavings" placeholder="e.g., 500000" min="0" required />
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label>Risk Preference</label>
+                    <div class="risk-options">
+                        <input type="radio" id="low" name="riskTolerance" value="low" required /><label for="low" class="risk-pill">Low</label>
+                        <input type="radio" id="medium" name="riskTolerance" value="medium" checked /><label for="medium" class="risk-pill">Medium</label>
+                        <input type="radio" id="high" name="riskTolerance" value="high" /><label for="high" class="risk-pill">High</label>
+                    </div>
+                </div>
+                <button type="submit" class="submit-btn">Generate My Dashboard</button>
+            </form>
+        </div>
+    </div>
+    
+    <div id="dashboardWrapper" class="hidden">
+        <header>
+            <div class="header-quote"></div>
+            <div class="header-date" id="currentDate"></div>
+        </header>
+        <main>
+            <aside>
+                <div class="profile">
+                    <div class="profile-username" id="sidebarUsername"></div>
+                    <div class="profile-welcome">Welcome to your Future</div>
+                </div>
+                <nav id="main-nav" aria-label="Main navigation">
+                    <button data-section="sectionDashboard" class="active"><i data-lucide="layout-dashboard"></i> Dashboard</button>
+                    <button data-section="sectionLearn"><i data-lucide="book-open"></i> Learn</button>
+                    <button data-section="sectionSchemes"><i data-lucide="target"></i> Schemes</button>
+                    <button data-section="sectionSuggestions"><i data-lucide="lightbulb"></i> Suggestions</button>
+                    <button data-section="sectionCalculator"><i data-lucide="calculator"></i> SIP Calculator</button>
+                    <button data-section="sectionInflation"><i data-lucide="trending-up"></i> Inflation Calculator</button>
+                    <button data-section="sectionReports"><i data-lucide="file-text"></i> Reports</button>
+                    <button id="logoutBtn"><i data-lucide="log-out"></i> Log Out</button>
+                </nav>
+            </aside>
+            <section class="content" aria-live="polite">
+                <div id="sectionDashboard" class="page-section active">
+                    <h1 id="dashboard-header" style="text-align: center;"></h1>
+                    <div class="dashboard-grid" role="list">
+                        <article class="dashboard-card"><div class="icon"><i data-lucide="dollar-sign"></i></div><div class="card-title">Projected Corpus</div><div class="card-value" id="corpusDisplay"></div></article>
+                        <article class="dashboard-card"><div class="icon"><i data-lucide="shield-check"></i></div><div class="card-title">Real Value (Today's Money)</div><div class="card-value" id="adjustedCorpusDisplay"></div></article>
+                        <article class="dashboard-card"><div class="icon"><i data-lucide="trending-up"></i></div><div class="card-title">Total Returns</div><div class="card-value" id="returnsDisplay"></div></article>
+                        <article class="dashboard-card"><div class="icon"><i data-lucide="piggy-bank"></i></div><div class="card-title">Total Principal</div><div class="card-value" id="totalInvestmentDisplay"></div></article>
+                    </div>
+                    <div class="dashboard-details-grid">
+                        <article class="dashboard-card"><div class="card-title">Monthly Investment</div><div class="card-value" id="investmentDisplay"></div></article>
+                        <article class="dashboard-card"><div class="card-title">Current Savings</div><div class="card-value" id="savingsDisplay"></div></article>
+                        <article class="dashboard-card"><div class="card-title">Investment Horizon</div><div class="card-value" id="horizonDisplay"></div></article>
+                        <article class="dashboard-card"><div class="card-title">Risk Profile</div><div class="card-value" id="riskProfileDisplay"></div></article>
+                    </div>
+                    <div class="dashboard-charts-grid">
+                        <div class="chart-container"><h3>Wealth Distribution</h3><canvas id="corpusChart"></canvas></div>
+                        <div class="chart-container"><h3>Projected Growth</h3><canvas id="growthChart"></canvas></div>
+                    </div>
+                    <div class="takeaways-container">
+                        <h3>Key Takeaways & Suggestions</h3>
+                        <div class="takeaway-grid">
+                            <div class="takeaway-card" id="takeaway-compounding"></div>
+                            <div class="takeaway-card" id="takeaway-risk"></div>
+                            <div class="takeaway-card" id="takeaway-increase"></div>
+                        </div>
+                    </div>
+                </div>
+                <div id="sectionLearn" class="page-section">
+                    <h2>Learn the Basics</h2>
+                    <p class="page-description">Empower your financial journey by understanding these core concepts.</p>
+                    <div class="learn-grid">
+                        <div class="learn-card"><h3>What is a SIP?</h3><p>A Systematic Investment Plan (SIP) is a method of investing a fixed amount of money in mutual funds at regular intervals.</p></div>
+                        <div class="learn-card"><h3>The Power of Compounding</h3><p>Compounding is the process where your investment returns start earning their own returns. It's like a snowball effect.</p></div>
+                        <div class="learn-card"><h3>Understanding Risk</h3><p>Investment risk is the probability of incurring losses relative to the expected return. Diversification can help manage risk.</p></div>
+                        <div class="learn-card"><h3>Equity vs. Debt</h3><p>Equity means owning a share in a company (higher risk/reward). Debt involves lending money for a fixed interest rate (lower risk/reward).</p></div>
+                        <div class="learn-card"><h3>What is Inflation?</h3><p>Inflation is the rate at which prices rise and purchasing power falls. Your investments should beat inflation.</p></div>
+                        <div class="learn-card"><h3>Diversification</h3><p>It's the practice of spreading your investments across various financial instruments to reduce risk.</p></div>
+                    </div>
+                </div>
+                <div id="sectionSchemes" class="page-section">
+                    <h2>Available Schemes</h2>
+                    <p class="page-description">Browse top investment choices for your preferred risk level.</p>
+                    <div class="filter-buttons" id="schemesFilter" role="tablist"><button class="filter-tab" data-risk="low" role="tab">Low Risk</button><button class="filter-tab active" data-risk="medium" role="tab">Medium Risk</button><button class="filter-tab" data-risk="high" role="tab">High Risk</button></div>
+                    <div class="plans-grid" id="schemesGrid"></div>
+                </div>
+                <div id="sectionSuggestions" class="page-section">
+                    <h2>Hybrid Suggestions: Diversify Your Savings</h2>
+                    <p class="page-description">Select professionally blended schemes by risk, split your savings smartly.</p>
+                    <div class="filter-buttons" id="suggestionsFilter" role="tablist"><button class="filter-tab active" data-risk="low" role="tab">Low Risk</button><button class="filter-tab" data-risk="medium" role="tab">Medium Risk</button><button class="filter-tab" data-risk="high" role="tab">High Risk</button></div>
+                    <div id="suggestionsContainer"></div>
+                </div>
+                <div id="sectionCalculator" class="page-section">
+                    <h2>SIP Calculator</h2>
+                    <p class="page-description">Model different retirement scenarios to understand your financial future.</p>
+                    <div class="calculator-box">
+                        <form id="calcForm" novalidate>
+                            <div class="calc-row"><label class="calc-label" for="inputAge">Current Age</label><input type="number" id="inputAge" class="calc-input" min="18" max="80" required /></div>
+                            <div class="calc-row"><label class="calc-label" for="inputRetire">Retirement Age</label><input type="number" id="inputRetire" class="calc-input" min="20" max="80" required /></div>
+                            <div class="calc-row"><label class="calc-label" for="inputSavings">Current Savings (₹)</label><input type="number" id="inputSavings" class="calc-input" min="0" required /></div>
+                            <div class="calc-row"><label class="calc-label" for="inputInvestment">Monthly Investment (₹)</label><input type="number" id="inputInvestment" class="calc-input" min="0" required /></div>
+                            <div class="calc-row">
+                                <div class="calc-label">Risk Preference</div>
+                                <div class="risk-group" id="riskGroup" role="group">
+                                    <button type="button" class="risk-btn" data-risk="low">Low</button>
+                                    <button type="button" class="risk-btn selected" data-risk="medium">Medium</button>
+                                    <button type="button" class="risk-btn" data-risk="high">High</button>
+                                </div>
+                            </div>
+                            <button type="submit" class="calc-btn">Calculate</button>
+                        </form>
+                        <div id="calcResult"></div>
+                    </div>
+                </div>
+                <div id="sectionInflation" class="page-section">
+                    <h2>Inflation Calculator</h2>
+                    <p class="page-description">Understand the future value and purchasing power of your money.</p>
+                     <div class="calculator-box">
+                        <form id="inflationCalcForm" novalidate>
+                            <div class="calc-row"><label class="calc-label" for="inflateAmount">Current Amount (₹)</label><input type="number" id="inflateAmount" class="calc-input" placeholder="e.g., 100000" required /></div>
+                            <div class="calc-row"><label class="calc-label" for="inflateRate">Inflation Rate (%)</label><input type="number" id="inflateRate" class="calc-input" placeholder="e.g., 6" required /></div>
+                            <div class="calc-row"><label class="calc-label" for="inflateYears">Number of Years</label><input type="number" id="inflateYears" class="calc-input" placeholder="e.g., 10" required /></div>
+                            <button type="submit" class="calc-btn">Calculate</button>
+                        </form>
+                        <div id="inflationCalcResult"></div>
+                    </div>
+                </div>
+                <div id="sectionReports" class="page-section">
+                    <h2 class="report-header" style="text-align: center;">Professional Financial Report</h2>
+                    <div id="reportBox"></div>
+                    <div style="text-align: center;"><button id="downloadReport"><i data-lucide="download"></i>Download as PDF</button></div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <div id="feedbackPage" class="page hidden">
+        <div class="form-container" style="max-width: 550px;">
+            <h2>Thank You & Feedback</h2>
+            <p class="subtitle" style="opacity:1; animation:none; font-size: 1.1rem; margin-bottom: 24px;">Your session has ended. We would love to hear your thoughts.</p>
+            <form id="feedbackForm">
+                <div class="input-group"><label for="feedback">Your Feedback</label><textarea id="feedback" name="feedback" required></textarea></div>
+                <button type="submit" class="submit-btn">Submit Feedback</button>
+                <div class="feedback-confirmation" id="feedbackConfirmation" style="display: none;">Thank you for your valuable feedback!</div>
+            </form>
+            <button id="homepageButton" class="action-button" style="opacity:1; animation:none; margin-top: 24px; width: 100%;">Return to Homepage</button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="schemeSuggestionModal">
+        <div class="modal-content">
+            <div class="modal-title" id="modalTitle"></div>
+            <div class="modal-desc" id="modalDesc"></div>
+            <canvas id="modalPieChart" style="width: 100%; max-width: 280px;"></canvas>
+            <button class="modal-footer-btn" id="modalCloseBtn">Close</button>
+        </div>
+    </div>
+
+    <div class="custom-alert-modal" id="alertModal">
+        <div class="custom-alert-content">
+            <h3 id="alertTitle"></h3>
+            <p id="alertMessage"></p>
+            <button class="custom-alert-btn" id="alertCloseBtn">OK</button>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+
+    <script>
+        // --- START: FIREBASE SETUP ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyDC3SVpA3Nc8c_Od0Y4zQfAX4hPVlphI5U",
+            authDomain: "praveen-financial-advice.firebaseapp.com",
+            projectId: "praveen-financial-advice",
+            storageBucket: "praveen-financial-advice.appspot.com",
+            messagingSenderId: "498504935474",
+            appId: "1:498504935474:web:680d9364c15aea68fcb42b",
+            measurementId: "G-L7XQ61BGH3"
+        };
+        const app = firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        // --- END: FIREBASE SETUP ---
+
+        const financialQuotes = [
+            "The best investment you can make is in yourself.",
+            "Rule No. 1: Never lose money. Rule No. 2: Never forget Rule No. 1. - Warren Buffett",
+            "In investing, what is comfortable is rarely profitable. - Robert Arnott",
+            "The stock market is a device for transferring money from the impatient to the patient. - Warren Buffett",
+            "Know what you own, and know why you own it. - Peter Lynch",
+            "The individual investor should act consistently as an investor and not as a speculator. - Ben Graham",
+            "An investment in knowledge pays the best interest. - Benjamin Franklin"
+        ];
+        
+        // --- EXPANDED DATA ---
+        const schemesData = {
+            low: [
+                { name: "Public Provident Fund (PPF)", category: "Govt. Scheme", returns: "7.1%", rating: 5, desc: "A long-term, government-backed savings scheme with tax benefits under Section 80C.", companyInfo: "Offered by the Government of India." },
+                { name: "Axis Liquid Fund", category: "Debt - Liquid", returns: "7.2%", rating: 5, desc: "Invests in short-term money market instruments, offering high liquidity and low risk.", companyInfo: "Managed by Axis Asset Management Company." },
+                { name: "SBI Magnum Gilt Fund", category: "Debt - Gilt", returns: "7.8%", rating: 4, desc: "Invests in government securities, ensuring zero credit risk and stable returns.", companyInfo: "Managed by SBI Funds Management." },
+                { name: "HDFC Arbitrage Fund", category: "Hybrid - Arbitrage", returns: "7.5%", rating: 5, desc: "Generates returns by capitalizing on price differences of stocks between cash and derivatives markets.", companyInfo: "Managed by HDFC Mutual Fund." },
+                { name: "Kotak Savings Fund", category: "Debt - Low Duration", returns: "6.9%", rating: 4, desc: "A conservative debt fund that aims to provide stable income with minimal interest rate risk.", companyInfo: "Managed by Kotak Mahindra AMC." },
+                { name: "ICICI Prudential Overnight Fund", category: "Debt - Overnight", returns: "6.5%", rating: 5, desc: "Invests in securities with a one-day maturity, making it extremely low-risk.", companyInfo: "Managed by ICICI Prudential AMC." },
+                { name: "National Savings Certificate (NSC)", category: "Govt. Scheme", returns: "7.7%", rating: 5, desc: "A fixed-income investment scheme from the Indian Post Office with a 5-year tenure.", companyInfo: "Offered by India Post." },
+                { name: "UTI Money Market Fund", category: "Debt - Money Market", returns: "7.3%", rating: 4, desc: "Invests in high-quality money market instruments like commercial papers and treasury bills.", companyInfo: "Managed by UTI Mutual Fund." },
+                { name: "Nippon India Liquid Fund", category: "Debt - Liquid", returns: "7.1%", rating: 5, desc: "Aims to provide optimal returns with low-to-moderate levels of risk and high liquidity.", companyInfo: "Managed by Nippon India Mutual Fund." },
+                { name: "DSP Arbitrage Fund", category: "Hybrid - Arbitrage", returns: "7.4%", rating: 4, desc: "Seeks to generate income through arbitrage opportunities arising out of mispricing between cash and derivative market.", companyInfo: "Managed by DSP Mutual Fund." }
+            ],
+            medium: [
+                { name: "Parag Parikh Flexi Cap Fund", category: "Equity - Flexi Cap", returns: "13.5%", rating: 5, desc: "A diversified equity fund investing across market caps and geographies, including some US stocks.", companyInfo: "Managed by PPFAS Mutual Fund." },
+                { name: "Axis Bluechip Fund", category: "Equity - Large Cap", returns: "11.8%", rating: 4, desc: "Invests predominantly in a diversified portfolio of outstanding large-cap companies.", companyInfo: "Managed by Axis Asset Management Company." },
+                { name: "ICICI Prudential Balanced Advantage Fund", category: "Hybrid - BAF", returns: "12.5%", rating: 5, desc: "A dynamic asset allocation fund that manages its equity and debt exposure based on market conditions.", companyInfo: "Managed by ICICI Prudential AMC." },
+                { name: "Mirae Asset Large Cap Fund", category: "Equity - Large Cap", returns: "12.1%", rating: 5, desc: "Aims for capital appreciation from a portfolio of predominantly large-cap stocks.", companyInfo: "Managed by Mirae Asset Mutual Fund." },
+                { name: "Kotak Flexicap Fund", category: "Equity - Flexi Cap", returns: "13.1%", rating: 4, desc: "Invests in a mix of large, mid, and small-cap stocks to capture growth across the market spectrum.", companyInfo: "Managed by Kotak Mahindra AMC." },
+                { name: "HDFC Index Fund - S&P BSE Sensex", category: "Equity - Index", returns: "11.5%", rating: 5, desc: "Passively invests in the 30 stocks that constitute the S&P BSE Sensex index.", companyInfo: "Managed by HDFC Mutual Fund." },
+                { name: "SBI Aggressive Hybrid Fund", category: "Hybrid - Aggressive", returns: "14.2%", rating: 4, desc: "Invests a majority of its assets in equities with the rest in debt for a growth-oriented approach.", companyInfo: "Managed by SBI Funds Management." },
+                { name: "UTI Flexi Cap Fund", category: "Equity - Flexi Cap", returns: "12.8%", rating: 5, desc: "A popular and well-established fund that dynamically invests across market capitalizations.", companyInfo: "Managed by UTI Mutual Fund." },
+                { name: "Canara Robeco Bluechip Equity Fund", category: "Equity - Large Cap", returns: "11.9%", rating: 4, desc: "Focuses on investing in market leaders with sustainable business models for long-term growth.", companyInfo: "Managed by Canara Robeco AMC." },
+                { name: "DSP Equity & Bond Fund", category: "Hybrid - Aggressive", returns: "13.8%", rating: 4, desc: "A hybrid fund that balances a portfolio between equity and debt instruments.", companyInfo: "Managed by DSP Mutual Fund." }
+            ],
+            high: [
+                { name: "Quant Small Cap Fund", category: "Equity - Small Cap", returns: "28.5%", rating: 5, desc: "An aggressive fund investing in small-cap companies with high growth potential, using a dynamic strategy.", companyInfo: "Managed by Quant Mutual Fund." },
+                { name: "Axis Small Cap Fund", category: "Equity - Small Cap", returns: "26.2%", rating: 5, desc: "Invests in a diversified portfolio of small-cap stocks with a focus on quality and growth.", companyInfo: "Managed by Axis Asset Management Company." },
+                { name: "Tata Digital India Fund", category: "Equity - Thematic", returns: "24.8%", rating: 4, desc: "A technology-focused fund investing in IT, media, telecom, and other tech-enabled companies.", companyInfo: "Managed by Tata Mutual Fund." },
+                { name: "ICICI Prudential Technology Fund", category: "Equity - Thematic", returns: "25.5%", rating: 5, desc: "Aims to generate long-term capital appreciation by investing in technology and technology-dependent companies.", companyInfo: "Managed by ICICI Prudential AMC." },
+                { name: "Kotak Emerging Equity Fund", category: "Equity - Mid Cap", returns: "22.1%", rating: 4, desc: "Focuses on a portfolio of mid-cap stocks that have the potential to become future market leaders.", companyInfo: "Managed by Kotak Mahindra AMC." },
+                { name: "Nippon India Small Cap Fund", category: "Equity - Small Cap", returns: "27.1%", rating: 5, desc: "One of the largest small-cap funds, investing in a vast and diversified portfolio of small-cap companies.", companyInfo: "Managed by Nippon India Mutual Fund." },
+                { name: "SBI Magnum Midcap Fund", category: "Equity - Mid Cap", returns: "23.5%", rating: 4, desc: "Invests in a diversified portfolio of mid-sized companies to capture their high growth phase.", companyInfo: "Managed by SBI Funds Management." },
+                { name: "Mirae Asset Midcap Fund", category: "Equity - Mid Cap", returns: "24.0%", rating: 5, desc: "Aims to identify and invest in mid-cap companies with strong growth prospects and management.", companyInfo: "Managed by Mirae Asset Mutual Fund." },
+                { name: "DSP Small Cap Fund", category: "Equity - Small Cap", returns: "25.8%", rating: 4, desc: "Focuses on identifying high-quality small-cap businesses that are scalable and have long-term potential.", companyInfo: "Managed by DSP Mutual Fund." },
+                { name: "Aditya Birla SL Digital India Fund", category: "Equity - Thematic", returns: "24.2%", rating: 4, desc: "Invests in companies that are expected to benefit from the growth of digital technology and services in India.", companyInfo: "Managed by Aditya Birla Sun Life AMC." }
+            ]
+        };
+        const hybridSuggestions = {
+            low: [
+                { title: "Capital Shield Portfolio", split: ["PPF", "Axis Liquid Fund", "SBI Magnum Gilt Fund"], returns: [7.1, 7.2, 7.8], desc: "An ultra-safe portfolio focusing on capital preservation through government schemes and high-quality debt.", allocation: [40, 30, 30], rating: 5 },
+                { title: "Steady Income Generator", split: ["National Savings Certificate (NSC)", "HDFC Arbitrage Fund", "Kotak Savings Fund"], returns: [7.7, 7.5, 6.9], desc: "Designed for regular, stable income with minimal risk by combining fixed income, arbitrage, and low-duration debt.", allocation: [35, 35, 30], rating: 4 },
+                { title: "Liquidity First Plan", split: ["ICICI Prudential Overnight Fund", "UTI Money Market Fund", "Nippon India Liquid Fund"], returns: [6.5, 7.3, 7.1], desc: "Prioritizes high liquidity, suitable for short-term goals and emergency funds, with very low risk.", allocation: [33, 33, 34], rating: 5 },
+                { title: "Tax-Saver Conservative Mix", split: ["PPF", "DSP Arbitrage Fund", "Axis Liquid Fund"], returns: [7.1, 7.4, 7.2], desc: "A blend that offers tax benefits under Section 80C while keeping overall risk low with arbitrage and liquid funds.", allocation: [50, 25, 25], rating: 4 },
+                { title: "Government Backed Security", split: ["SBI Magnum Gilt Fund", "PPF", "National Savings Certificate (NSC)"], returns: [7.8, 7.1, 7.7], desc: "Maximizes safety by investing solely in instruments backed by the government, eliminating credit risk.", allocation: [40, 30, 30], rating: 5 },
+                { title: "Arbitrage Advantage", split: ["HDFC Arbitrage Fund", "DSP Arbitrage Fund", "Kotak Savings Fund"], returns: [7.5, 7.4, 6.9], desc: "Focuses on generating debt-like returns with equity taxation benefits through arbitrage opportunities.", allocation: [40, 40, 20], rating: 4 },
+                { title: "Short-Term Stability", split: ["Axis Liquid Fund", "ICICI Prudential Overnight Fund", "UTI Money Market Fund"], returns: [7.2, 6.5, 7.3], desc: "A portfolio of short-maturity debt instruments perfect for parking funds for a few months to a year.", allocation: [40, 30, 30], rating: 5 },
+                { title: "Conservative Hybrid Start", split: ["SBI Magnum Gilt Fund", "HDFC Arbitrage Fund", "PPF"], returns: [7.8, 7.5, 7.1], desc: "A beginner-friendly mix of government securities and arbitrage for those new to investing.", allocation: [35, 35, 30], rating: 4 },
+                { title: "The Fortress Plan", split: ["National Savings Certificate (NSC)", "SBI Magnum Gilt Fund", "ICICI Prudential Overnight Fund"], returns: [7.7, 7.8, 6.5], desc: "An extremely defensive portfolio designed to protect capital against market volatility.", allocation: [40, 40, 20], rating: 5 },
+                { title: "Balanced Debt Portfolio", split: ["Kotak Savings Fund", "UTI Money Market Fund", "Nippon India Liquid Fund"], returns: [6.9, 7.3, 7.1], desc: "A diversified portfolio of various low-risk debt instruments for consistent returns.", allocation: [33, 33, 34], rating: 4 }
+            ],
+            medium: [
+                { title: "Balanced Wealth Builder", split: ["Parag Parikh Flexi Cap Fund", "ICICI Prudential BAF", "Axis Bluechip Fund"], returns: [13.5, 12.5, 11.8], desc: "A core portfolio blending a top flexi-cap fund with a balanced advantage and a large-cap fund for steady wealth creation.", allocation: [40, 30, 30], rating: 5 },
+                { title: "Market Navigator", split: ["HDFC Index Fund - Sensex", "Kotak Flexicap Fund", "DSP Equity & Bond Fund"], returns: [11.5, 13.1, 13.8], desc: "Combines the stability of an index fund with the agility of a flexi-cap and a hybrid fund to navigate market cycles.", allocation: [35, 35, 30], rating: 4 },
+                { title: "Smart Diversifier", split: ["Mirae Asset Large Cap Fund", "UTI Flexi Cap Fund", "SBI Aggressive Hybrid Fund"], returns: [12.1, 12.8, 14.2], desc: "A well-diversified mix of quality large-cap stocks, flexible market-cap exposure, and an aggressive hybrid approach.", allocation: [33, 33, 34], rating: 5 },
+                { title: "The Core & Satellite", split: ["Axis Bluechip Fund", "Parag Parikh Flexi Cap Fund", "HDFC Index Fund - Sensex"], returns: [11.8, 13.5, 11.5], desc: "Uses stable large-cap and index funds as the 'core' and a globally diversified flexi-cap fund as the 'satellite' for extra growth.", allocation: [40, 20, 40], rating: 5 },
+                { title: "Growth with Stability", split: ["ICICI Prudential BAF", "Canara Robeco Bluechip Equity", "Kotak Flexicap Fund"], returns: [12.5, 11.9, 13.1], desc: "Aims to capture equity growth while cushioning downturns using a balanced advantage fund as a key component.", allocation: [40, 30, 30], rating: 4 },
+                { title: "All-Weather Equity Mix", split: ["UTI Flexi Cap Fund", "HDFC Index Fund - Sensex", "ICICI Prudential BAF"], returns: [12.8, 11.5, 12.5], desc: "A combination designed to perform reasonably well across different market phases.", allocation: [40, 30, 30], rating: 4 },
+                { title: "The Bluechip Leader", split: ["Axis Bluechip Fund", "Mirae Asset Large Cap Fund", "Canara Robeco Bluechip Equity"], returns: [11.8, 12.1, 11.9], desc: "A portfolio concentrated on top-tier large-cap funds for relatively stable equity growth.", allocation: [33, 33, 34], rating: 5 },
+                { title: "Flexi-Growth Engine", split: ["Parag Parikh Flexi Cap Fund", "Kotak Flexicap Fund", "UTI Flexi Cap Fund"], returns: [13.5, 13.1, 12.8], desc: "A high-conviction portfolio focusing on the best flexi-cap funds for dynamic market participation.", allocation: [33, 33, 34], rating: 4 },
+                { title: "Hybrid Powerhouse", split: ["SBI Aggressive Hybrid Fund", "DSP Equity & Bond Fund", "ICICI Prudential BAF"], returns: [14.2, 13.8, 12.5], desc: "Leverages aggressive and balanced hybrid funds to create a growth-oriented yet partially hedged portfolio.", allocation: [40, 30, 30], rating: 4 },
+                { title: "Index & Alpha", split: ["HDFC Index Fund - Sensex", "Parag Parikh Flexi Cap Fund", "Mirae Asset Large Cap Fund"], returns: [11.5, 13.5, 12.1], desc: "Blends passive investing through an index fund with actively managed funds that aim to beat the market (generate alpha).", allocation: [40, 30, 30], rating: 5 }
+            ],
+            high: [
+                { title: "Aggressive Growth Engine", split: ["Quant Small Cap Fund", "Tata Digital India Fund", "Kotak Emerging Equity Fund"], returns: [28.5, 24.8, 22.1], desc: "A high-octane portfolio combining a top-performing small-cap fund with a technology fund and a mid-cap fund for explosive growth potential.", allocation: [40, 30, 30], rating: 5 },
+                { title: "High-Alpha Portfolio", split: ["Axis Small Cap Fund", "ICICI Prudential Technology Fund", "Nippon India Small Cap Fund"], returns: [26.2, 25.5, 27.1], desc: "A portfolio designed to aggressively seek higher-than-market returns (alpha) by focusing on high-growth sectors and small caps.", allocation: [33, 34, 33], rating: 5 },
+                { title: "The Multiplier", split: ["SBI Magnum Midcap Fund", "Quant Small Cap Fund", "Mirae Asset Midcap Fund"], returns: [23.5, 28.5, 24.0], desc: "Concentrates on mid and small-cap segments, which are known for their potential to multiply wealth over the long term.", allocation: [30, 40, 30], rating: 4 },
+                { title: "Tech & Emerging Stars", split: ["Tata Digital India Fund", "Axis Small Cap Fund", "Kotak Emerging Equity Fund"], returns: [24.8, 26.2, 22.1], desc: "Bets on two major growth themes: the digital transformation of India and the rise of emerging small and mid-cap companies.", allocation: [40, 30, 30], rating: 5 },
+                { title: "Small Cap Titans", split: ["Quant Small Cap Fund", "Axis Small Cap Fund", "Nippon India Small Cap Fund"], returns: [28.5, 26.2, 27.1], desc: "A portfolio heavily concentrated in the best-in-class small-cap funds for maximum risk and reward.", allocation: [33, 33, 34], rating: 5 },
+                { title: "Mid Cap Mavericks", split: ["Kotak Emerging Equity Fund", "SBI Magnum Midcap Fund", "Mirae Asset Midcap Fund"], returns: [22.1, 23.5, 24.0], desc: "Focuses entirely on the mid-cap space to capture the growth of companies as they transition into large caps.", allocation: [33, 33, 34], rating: 4 },
+                { title: "Digital Future Portfolio", split: ["Tata Digital India Fund", "ICICI Prudential Technology Fund", "Aditya Birla SL Digital India Fund"], returns: [24.8, 25.5, 24.2], desc: "A thematic portfolio with concentrated exposure to the technology sector, suitable for investors bullish on IT.", allocation: [33, 34, 33], rating: 4 },
+                { title: "Risk Taker's Delight", split: ["Nippon India Small Cap Fund", "Tata Digital India Fund", "SBI Magnum Midcap Fund"], returns: [27.1, 24.8, 23.5], desc: "A diversified but highly aggressive mix of small-cap, mid-cap, and thematic funds for those with a very high risk appetite.", allocation: [40, 30, 30], rating: 4 },
+                { title: "Next-Gen Leaders", split: ["Mirae Asset Midcap Fund", "DSP Small Cap Fund", "Axis Small Cap Fund"], returns: [24.0, 25.8, 26.2], desc: "Invests in small and mid-sized companies that have the potential to become the bluechip leaders of tomorrow.", allocation: [40, 30, 30], rating: 5 },
+                { title: "The Volatility Rider", split: ["Quant Small Cap Fund", "ICICI Prudential Technology Fund", "DSP Small Cap Fund"], returns: [28.5, 25.5, 25.8], desc: "A portfolio for experienced investors who understand market volatility and aim to capitalize on it through aggressive funds.", allocation: [40, 20, 40], rating: 4 }
+            ]
+        };
+        
+        // --- GLOBAL VARIABLES ---
+        let user = {};
+        let corpusChartInstance = null;
+        let growthChartInstance = null;
+        let modalPieChartInstance = null;
+
+        // --- PAGE NAVIGATION ---
+        const pages = document.querySelectorAll('.page, #dashboardWrapper');
+        function showPage(pageId) {
+            pages.forEach(page => page.classList.add('hidden'));
+            document.getElementById(pageId)?.classList.remove('hidden');
+        }
+
+        // --- CORE LOGIC & INITIALIZATION ---
+        document.addEventListener("DOMContentLoaded", () => {
+            initializeBackground();
+            auth.onAuthStateChanged(firebaseUser => {
+                if (firebaseUser) {
+                    loadInitialUserData(firebaseUser);
+                } else {
+                    showPage('mainWelcomePage');
+                }
+            });
+            addEventListeners();
+            lucide.createIcons();
+        });
+
+        async function loadInitialUserData(firebaseUser) {
+             const userDoc = await db.collection('users').doc(firebaseUser.uid).get();
+             if (userDoc.exists && userDoc.data().financialData) {
+                 user = userDoc.data().financialData;
+                 initializeDashboard();
+                 showPage('dashboardWrapper');
+            } else {
+                 showPage('detailsPage');
+            }
+        }
+
+        function showCustomAlert(title, message) {
+            const modal = document.getElementById('alertModal');
+            document.getElementById('alertTitle').textContent = title;
+            document.getElementById('alertMessage').textContent = message;
+            modal.classList.add('visible');
+        }
+
+        function addEventListeners() {
+            document.getElementById('loginButton').addEventListener('click', () => showPage('loginPage'));
+            document.getElementById('createAccountLink').addEventListener('click', e => { e.preventDefault(); showPage('signupPage'); });
+            document.getElementById('backToLoginLink').addEventListener('click', e => { e.preventDefault(); showPage('loginPage'); });
+            document.getElementById('homepageButton').addEventListener('click', () => {
+                auth.signOut().then(() => {
+                    window.location.reload();
+                });
+            });
+            document.getElementById('loginForm').addEventListener('submit', handleLogin);
+            document.getElementById('signupForm').addEventListener('submit', handleSignup);
+            document.getElementById('detailsForm').addEventListener('submit', handleDetailsSubmit);
+            document.getElementById('logoutBtn').addEventListener('click', handleLogout);
+            document.getElementById('alertCloseBtn').addEventListener('click', () => document.getElementById('alertModal').classList.remove('visible'));
+            document.querySelectorAll('#main-nav button:not(#logoutBtn)').forEach(button => button.addEventListener('click', handleNavClick));
+            document.getElementById("schemesFilter").addEventListener("click", handleSchemeFilter);
+            document.getElementById("suggestionsFilter").addEventListener("click", handleSuggestionFilter);
+            document.getElementById('calcForm').addEventListener('submit', handleCalcSubmit);
+            document.getElementById('inflationCalcForm').addEventListener('submit', handleInflationCalcSubmit);
+            document.getElementById("downloadReport").addEventListener("click", handleDownloadReport);
+            document.getElementById("modalCloseBtn").addEventListener("click", () => document.getElementById("schemeSuggestionModal").classList.remove("visible"));
+            document.getElementById('feedbackForm').addEventListener('submit', handleFeedbackSubmit);
+            document.querySelectorAll('.risk-btn').forEach(btn => btn.addEventListener('click', e => {
+                document.querySelectorAll('.risk-btn').forEach(b => b.classList.remove('selected'));
+                e.currentTarget.classList.add('selected');
+            }));
+        }
+        
+        // --- AUTH & DATA FUNCTIONS ---
+        async function handleSignup(event) {
+            event.preventDefault();
+            const email = document.getElementById('signupEmail').value;
+            const password = document.getElementById('signupPassword').value;
+            try {
+                const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+                await db.collection('users').doc(userCredential.user.uid).set({
+                    email: userCredential.user.email,
+                    financialData: null
+                });
+                showCustomAlert("Success!", "Account created. Please log in.");
+                showPage('loginPage');
+            } catch (error) {
+                showCustomAlert("Signup Failed", error.message);
+            }
+        }
+        
+        async function handleLogin(event) {
+            event.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            try {
+                await auth.signInWithEmailAndPassword(email, password);
+            } catch (error) {
+                showCustomAlert("Login Failed", error.message);
+            }
+        }
+        
+        async function handleDetailsSubmit(event) {
+            event.preventDefault();
+            const currentUser = auth.currentUser;
+            if (!currentUser) {
+                showCustomAlert("Error", "You must be logged in to save data.");
+                return;
+            }
+        
+            const formData = new FormData(event.target);
+            user = {
+                name: formData.get('name'),
+                age: Number(formData.get('age')),
+                retirementAge: Number(formData.get('retirementAge')),
+                monthlyInvestment: Number(formData.get('monthlyInvestment')),
+                currentSavings: Number(formData.get('currentSavings')),
+                riskTolerance: formData.get('riskTolerance')
+            };
+        
+            if (!user.name || !user.age || !user.retirementAge) {
+                return showCustomAlert("Missing Info", "Please fill out all required fields.");
+            }
+            if (user.retirementAge <= user.age) {
+                return showCustomAlert("Input Error", "Retirement age must be greater than current age.");
+            }
+        
+            try {
+                await db.collection('users').doc(currentUser.uid).set({ financialData: user }, { merge: true });
+                initializeDashboard();
+                showPage('dashboardWrapper');
+            } catch (error) {
+                showCustomAlert("Error Saving Data", error.message);
+            }
+        }
+        
+        function handleLogout() {
+            showPage('feedbackPage');
+        }
+
+        async function handleFeedbackSubmit(event) {
+            event.preventDefault();
+            const feedbackText = document.getElementById('feedback').value;
+            if (!feedbackText.trim()) {
+                return showCustomAlert("Feedback Empty", "Please write something before submitting.");
+            }
+
+            const currentUser = auth.currentUser;
+            if (!currentUser) {
+                 showCustomAlert("Error", "You must be logged in to submit feedback.");
+                 return;
+            }
+
+            const feedbackData = {
+                text: feedbackText,
+                timestamp: new Date(),
+                userId: currentUser.uid,
+                userEmail: currentUser.email
+            };
+
+            try {
+                await db.collection('feedback').add(feedbackData);
+                document.getElementById('feedbackForm').style.display = 'none';
+                document.getElementById('feedbackConfirmation').style.display = 'block';
+            } catch (error) {
+                showCustomAlert("Submission Failed", "Could not submit feedback. Please check your Firebase Rules and try again.");
+                console.error("Feedback submission error:", error);
+            }
+        }
+        
+        // --- RENDER & UTILITY FUNCTIONS ---
+        function initializeDashboard() {
+            renderDashboard();
+            updateDate();
+            const quote = financialQuotes[Math.floor(Math.random() * financialQuotes.length)];
+            document.querySelector('.header-quote').textContent = `"${quote}"`;
+        }
+        
+        function handleNavClick(e) { 
+            const button = e.currentTarget; 
+            document.querySelectorAll('.page-section').forEach(section => section.classList.remove('active')); 
+            document.getElementById(button.dataset.section).classList.add('active'); 
+            document.querySelectorAll('#main-nav button').forEach(btn => btn.classList.remove('active')); 
+            button.classList.add('active'); 
+            if (button.dataset.section === 'sectionReports') {
+                renderReports();
+            }
+        }
+
+        function calculateCorpus(age, retireAge, monthlyInvest, currentSavings, risk, inflationRate = 0.06) { 
+            if (retireAge <= age) return { corpus: currentSavings, years: 0, rate: 0, adjustedCorpus: currentSavings }; 
+            const yrs = retireAge - age; 
+            const rates = { low: 0.08, medium: 0.12, high: 0.15 }; 
+            const r = rates[risk]; const n = 12; 
+            const fvMonthly = monthlyInvest * ((Math.pow(1 + r / n, n * yrs) - 1) / (r / n)); 
+            const fvLump = currentSavings * Math.pow(1 + r / n, n * yrs); 
+            const futureCorpus = Math.round(fvMonthly + fvLump); 
+            const adjustedCorpus = Math.round(futureCorpus / Math.pow(1 + inflationRate, yrs)); 
+            return { corpus: futureCorpus, years: yrs, rate: r, adjustedCorpus: adjustedCorpus }; 
+        }
+
+        function formatRupee(val) { 
+            return new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(val); 
+        }
+
+        function renderDashboard() { 
+            const { corpus, years, adjustedCorpus } = calculateCorpus( user.age, user.retirementAge, user.monthlyInvestment, user.currentSavings, user.riskTolerance ); 
+            const invested = user.currentSavings + user.monthlyInvestment * 12 * years; 
+            const returns = corpus - invested; 
+            document.getElementById("dashboard-header").textContent = `Welcome, ${user.name}`; 
+            document.getElementById("sidebarUsername").textContent = user.name; 
+            document.getElementById("investmentDisplay").textContent = formatRupee(user.monthlyInvestment); 
+            document.getElementById("corpusDisplay").textContent = formatRupee(corpus); 
+            document.getElementById("adjustedCorpusDisplay").textContent = formatRupee(adjustedCorpus); 
+            document.getElementById("savingsDisplay").textContent = formatRupee(user.currentSavings); 
+            document.getElementById("totalInvestmentDisplay").textContent = formatRupee(invested); 
+            document.getElementById("returnsDisplay").textContent = formatRupee(returns); 
+            document.getElementById("horizonDisplay").textContent = `${years} years`; 
+            document.getElementById("riskProfileDisplay").textContent = user.riskTolerance.charAt(0).toUpperCase() + user.riskTolerance.slice(1); 
+            renderDashboardChart(invested, returns); 
+            renderGrowthChart(user.age, user.retirementAge, user.monthlyInvestment, user.currentSavings, user.riskTolerance);
+            renderKeyTakeaways(invested, returns, years);
+        }
+
+        function renderKeyTakeaways(invested, returns, years) {
+            // 1. Compounding Takeaway
+            const compoundingCard = document.getElementById('takeaway-compounding');
+            const wealthRatio = invested > 0 ? returns / invested : 0;
+            let compoundingText = '';
+            if (wealthRatio > 1.5) {
+                compoundingText = `Over your <strong>${years}-year</strong> horizon, your money is projected to grow more than <strong>${Math.round(wealthRatio)} times</strong>! This is the magic of compounding at work.`;
+            } else {
+                compoundingText = `With a long horizon of <strong>${years} years</strong>, you're giving your investments ample time to compound. Keep investing consistently to see the magic accelerate.`;
+            }
+            compoundingCard.innerHTML = `<i data-lucide="zap"></i> <p>${compoundingText}</p>`;
+
+            // 2. Risk Profile Takeaway
+            const riskCard = document.getElementById('takeaway-risk');
+            let riskText = '';
+            switch (user.riskTolerance) {
+                case 'high':
+                    riskText = `Your <strong>High Risk</strong> profile aims for maximum growth. It's wise to review your high-growth funds periodically to ensure they align with your goals.`;
+                    break;
+                case 'low':
+                    riskText = `Your <strong>Low Risk</strong> profile prioritizes capital safety. For long-term goals, consider a small allocation to balanced funds to potentially beat inflation more effectively.`;
+                    break;
+                default:
+                    riskText = `Your <strong>Medium Risk</strong> profile provides a great balance between growth and stability, making it ideal for steady, long-term wealth creation.`;
+            }
+            riskCard.innerHTML = `<i data-lucide="shield-half"></i> <p>${riskText}</p>`;
+
+            // 3. SIP Increase Takeaway
+            const increaseCard = document.getElementById('takeaway-increase');
+            const increasedInvestment = user.monthlyInvestment * 1.10;
+            const { corpus: newCorpus } = calculateCorpus(user.age, user.retirementAge, increasedInvestment, user.currentSavings, user.riskTolerance);
+            const { corpus: oldCorpus } = calculateCorpus(user.age, user.retirementAge, user.monthlyInvestment, user.currentSavings, user.riskTolerance);
+            const extraCorpus = newCorpus - oldCorpus;
+            let increaseText = `A small 10% increase of just <strong>${formatRupee(increasedInvestment - user.monthlyInvestment)}</strong> to your monthly SIP could add an extra <strong>${formatRupee(extraCorpus)}</strong> to your final corpus!`;
+            increaseCard.innerHTML = `<i data-lucide="trending-up"></i> <p>${increaseText}</p>`;
+
+            lucide.createIcons(); // Re-render icons after adding them
+        }
+
+        function renderDashboardChart(principal, wealthGained) { 
+            const ctx = document.getElementById('corpusChart').getContext('2d'); 
+            if (corpusChartInstance) { corpusChartInstance.destroy(); } 
+            corpusChartInstance = new Chart(ctx, { type: 'doughnut', data: { labels: ['Principal Invested', 'Wealth Gained'], datasets: [{ data: [principal, wealthGained], backgroundColor: ['#374151', 'var(--accent)'], borderColor: '#1f2937', borderWidth: 4, hoverOffset: 8 }] }, options: { responsive: true, maintainAspectRatio: false, cutout: '70%', plugins: { legend: { position: 'bottom', labels: { color: 'var(--primary)', font: { size: 14, family: "Poppins" } } }, tooltip: { callbacks: { label: (c) => `${c.label}: ${formatRupee(c.raw)}` } } } } }); 
+        }
+
+        function renderGrowthChart(age, retireAge, monthlyInvest, currentSavings, risk) { 
+            const years = retireAge - age; if (years <= 0) return; 
+            const rates = { low: 0.08, medium: 0.12, high: 0.15 }; 
+            const r = rates[risk]; const n = 12; 
+            const labels = []; const dataPoints = []; 
+            for (let i = 0; i <= years; i++) { 
+                const currentYear = age + i; labels.push(currentYear); 
+                const fvMonthly = monthlyInvest * ((Math.pow(1 + r / n, n * i) - 1) / (r / n)); 
+                const fvLump = currentSavings * Math.pow(1 + r / n, n * i); dataPoints.push(Math.round(fvMonthly + fvLump)); 
+            } 
+            const ctx = document.getElementById('growthChart').getContext('2d'); 
+            if (growthChartInstance) { growthChartInstance.destroy(); } 
+            growthChartInstance = new Chart(ctx, { type: 'line', data: { labels: labels, datasets: [{ label: 'Corpus Growth', data: dataPoints, borderColor: 'var(--accent)', backgroundColor: 'rgba(34, 211, 238, 0.2)', fill: true, tension: 0.4, pointRadius: 0 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { ticks: { color: 'var(--secondary)', callback: (value) => new Intl.NumberFormat('en-IN', { notation: 'compact', compactDisplay: 'short' }).format(value) }, grid: { color: 'rgba(55, 65, 81, 0.5)' } }, x: { ticks: { color: 'var(--secondary)', maxRotation: 0, autoSkip: true, maxTicksLimit: 10 }, grid: { display: false } } }, plugins: { legend: { display: false }, tooltip: { callbacks: { label: (c) => `Age ${c.label}: ${formatRupee(c.raw)}` } } } } }); 
+        }
+
+        function renderSchemes(risk) { 
+            const container = document.getElementById("schemesGrid"); 
+            container.innerHTML = ""; schemesData[risk].forEach(plan => { 
+                const card = document.createElement("div"); 
+                card.className = "plan-card"; 
+                card.tabIndex = 0; card.innerHTML = `<div class="plan-name">${plan.name}</div><div class="plan-cat">${plan.desc}</div><div class="plan-returns">1yr Returns: <span>${plan.returns}</span></div><div class="plan-rating">${"⭐".repeat(plan.rating)}</div>`; 
+                card.addEventListener("click", () => showSchemeSuggestionModal(plan.name, plan.desc, plan.companyInfo)); 
+                container.appendChild(card); 
+            }); 
+        }
+
+        function renderSuggestionsByRisk(risk) { 
+            const container = document.getElementById("suggestionsContainer"); 
+            container.innerHTML = ""; const gridDiv = document.createElement("div"); 
+            gridDiv.className = "plans-grid"; 
+            hybridSuggestions[risk].forEach(grp => { 
+                const card = document.createElement("div"); 
+                card.className = "plan-card"; 
+                card.tabIndex = 0; const avgReturn = (grp.returns.reduce((a,b)=>parseFloat(b),0)/grp.returns.length).toFixed(2); 
+                card.innerHTML = `<div class="plan-name">${grp.title}</div><div class="plan-cat">${grp.desc}</div><div class="plan-returns">Est. Avg Return: <strong>${avgReturn}%</strong></div><div class="plan-rating">${"⭐".repeat(grp.rating)}</div>`; 
+                card.addEventListener("click", () => { const descText = `${grp.desc}<br><br><strong>Portfolio Allocation (%):</strong><br>` + grp.split.map((s, idx) => `${s}: ${grp.allocation[idx]}%`).join("<br>"); showSchemeSuggestionModal(grp.title, descText, "", grp); }); 
+                gridDiv.appendChild(card); 
+            }); 
+            container.appendChild(gridDiv); 
+        }
+
+        function showSchemeSuggestionModal(title, description, companyInfo, group) { 
+            document.getElementById("modalTitle").textContent = title; 
+            document.getElementById("modalDesc").innerHTML = `${description}${companyInfo ? `<br><br><strong>Company Info:</strong><br>${companyInfo}` : ''}`; 
+            const pieCanvas = document.getElementById("modalPieChart"); 
+            if(modalPieChartInstance) modalPieChartInstance.destroy(); 
+            if(group && group.allocation) { 
+                pieCanvas.style.display = "block"; 
+                modalPieChartInstance = new Chart(pieCanvas.getContext("2d"), { type: "pie", data: { labels: group.split, datasets: [{ data: group.allocation, backgroundColor: ["#22d3ee", "#374151", "#9ca3af"], borderColor: "var(--surface)", borderWidth: 4 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: "bottom", labels: { color: 'var(--primary)' } } } } }); 
+            } else { pieCanvas.style.display = "none"; } 
+            document.getElementById("schemeSuggestionModal").classList.add("visible"); 
+        }
+
+        function handleSchemeFilter(e) { 
+            if (e.target.classList.contains("filter-tab")) { 
+                document.querySelectorAll("#schemesFilter .filter-tab").forEach(b => b.classList.remove("active")); 
+                e.target.classList.add("active"); renderSchemes(e.target.dataset.risk); 
+            } 
+        }
+
+        function handleSuggestionFilter(e) { 
+            if (e.target.classList.contains("filter-tab")) { 
+                document.querySelectorAll("#suggestionsFilter .filter-tab").forEach(b => b.classList.remove("active")); 
+                e.target.classList.add("active"); 
+                renderSuggestionsByRisk(e.target.dataset.risk); 
+            } 
+        }
+
+        function handleCalcSubmit(e) { 
+            e.preventDefault(); 
+            const age = Number(document.getElementById('inputAge').value); 
+            const retire = Number(document.getElementById('inputRetire').value); 
+            const savings = Number(document.getElementById('inputSavings').value); 
+            const invest = Number(document.getElementById('inputInvestment').value); 
+            const selectedRisk = document.querySelector('#riskGroup .risk-btn.selected').dataset.risk; 
+            if (retire <= age) { showCustomAlert("Input Error", "Retirement age must be greater than current age."); return; } 
+            const { corpus, years, adjustedCorpus } = calculateCorpus(age, retire, invest, savings, selectedRisk); 
+            const invested = savings + invest * 12 * years; 
+            const returns = corpus - invested; 
+            document.getElementById('calcResult').innerHTML = `<div><strong>Projected Corpus:</strong> ${formatRupee(corpus)}</div><div style="color: var(--secondary); margin-bottom: 10px;">Value in today's money: <strong>${formatRupee(adjustedCorpus)}</strong></div><div>Principal: <strong>${formatRupee(invested)}</strong> | Returns: <strong>${formatRupee(returns)}</strong></div>`; 
+        }
+
+        function handleInflationCalcSubmit(e) {
+            e.preventDefault();
+            const amount = Number(document.getElementById('inflateAmount').value);
+            const rate = Number(document.getElementById('inflateRate').value);
+            const years = Number(document.getElementById('inflateYears').value);
+
+            if (amount <= 0 || rate < 0 || years <= 0) {
+                showCustomAlert("Invalid Input", "Please enter positive values for all fields.");
+                return;
+            }
+
+            const futureValue = amount * Math.pow((1 + rate / 100), years);
+            const presentValue = amount / Math.pow((1 + rate / 100), years);
+            
+            const resultDiv = document.getElementById('inflationCalcResult');
+            resultDiv.innerHTML = `
+                <p>In <strong>${years} years</strong> at an inflation rate of <strong>${rate}%</strong>:</p>
+                <p>To have the same purchasing power as <strong>${formatRupee(amount)}</strong> today, you will need <strong class="future-value">${formatRupee(futureValue)}</strong>.</p>
+                <hr style="border-color: var(--border); margin: 12px 0;">
+                <p>Conversely, ${formatRupee(amount)} today will only have the purchasing power of <strong>${formatRupee(presentValue)}</strong> in the future.</p>
+            `;
+        }
+
+        function handleDownloadReport() { 
+            const reportElement = document.getElementById('reportBox'); 
+            html2canvas(reportElement, { backgroundColor: '#1f2937', scale: 2 }).then(canvas => { 
+                const imgData = canvas.toDataURL('image/png'); 
+                const pdf = new window.jspdf.jsPDF('p', 'mm', 'a4'); 
+                const pdfWidth = pdf.internal.pageSize.getWidth(); 
+                const newImgWidth = pdfWidth - 20; 
+                const newImgHeight = newImgWidth / (canvas.width / canvas.height); 
+                pdf.addImage(imgData, 'PNG', 10, 10, newImgWidth, newImgHeight); 
+                pdf.save(`${user.name.replace(/\s/g, '_')}_Financial_Report.pdf`); 
+            }); 
+        }
+
+        function renderReports(){ 
+            const {corpus, years, adjustedCorpus} = calculateCorpus(user.age, user.retirementAge, user.monthlyInvestment, user.currentSavings, user.riskTolerance); 
+            const invested = user.currentSavings + user.monthlyInvestment * 12 * years; 
+            const returns = corpus - invested; 
+            document.getElementById('reportBox').innerHTML = `<div class="report-section"><h3>Financial Snapshot for ${user.name}</h3><div class="report-grid"><div class="report-item"><div class="report-item-label">Current Age</div><div class="report-item-value">${user.age} years</div></div><div class="report-item"><div class="report-item-label">Retirement Age</div><div class="report-item-value">${user.retirementAge} years</div></div><div class="report-item"><div class="report-item-label">Current Savings</div><div class="report-item-value">${formatRupee(user.currentSavings)}</div></div><div class="report-item"><div class="report-item-label">Monthly Investment</div><div class="report-item-value">${formatRupee(user.monthlyInvestment)}</div></div></div></div><div class="report-section"><h3>Retirement Projection</h3><div class="report-grid"><div class="report-item"><div class="report-item-label">Projected Corpus</div><div class="report-item-value">${formatRupee(corpus)}</div></div><div class="report-item"><div class="report-item-label">Real Value (Today's Money)</div><div class="report-item-value">${formatRupee(adjustedCorpus)}</div></div><div class="report-item"><div class="report-item-label">Total Principal</div><div class="report-item-value">${formatRupee(invested)}</div></div><div class="report-item"><div class="report-item-label">Estimated Wealth Gain</div><div class="report-item-value">${formatRupee(returns)}</div></div></div></div><p class="report-disclaimer">This projection is not financial advice.</p>`; 
+        }
+
+        function updateDate(){ 
+            document.getElementById("currentDate").textContent = new Date().toLocaleDateString("en-IN", { year:"numeric", month:"long", day:"numeric" }); 
+        }
+        
+        function initializeBackground() { 
+            const canvas = document.getElementById('backgroundCanvas'); const ctx = canvas.getContext('2d'); 
+            let particlesArray; 
+            canvas.width = window.innerWidth; 
+            canvas.height = window.innerHeight; 
+            let mouse = { x: null, y: null, radius: (canvas.height/110) * (canvas.width/110) }; 
+            window.addEventListener('mousemove', function(event){ mouse.x = event.x; mouse.y = event.y; }); 
+            class Particle { constructor(x, y, dX, dY, size) { this.x = x; this.y = y; this.directionX = dX; this.directionY = dY; this.size = size; } draw() { ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2, false); ctx.fillStyle = 'rgba(34, 211, 238, 0.5)'; ctx.fill(); } update() { if (this.x > canvas.width || this.x < 0) { this.directionX = -this.directionX; } if (this.y > canvas.height || this.y < 0) { this.directionY = -this.directionY; } let dx = mouse.x - this.x; let dy = mouse.y - this.y; let distance = Math.sqrt(dx*dx + dy*dy); if (distance < mouse.radius + this.size){ if(mouse.x < this.x && this.x < canvas.width - this.size * 10){ this.x += 5; } if(mouse.x > this.x && this.x > this.size * 10){ this.x -= 5; } if(mouse.y < this.y && this.y < canvas.height - this.size * 10){ this.y += 5; } if(mouse.y > this.y && this.y > this.size * 10){ this.y -= 5; } } this.x += this.directionX; this.y += this.directionY; this.draw(); } } function initParticles() { particlesArray = []; let num = (canvas.height * canvas.width) / 9000; for (let i = 0; i < num; i++) { let size = (Math.random() * 2) + 1; let x = (Math.random() * ((innerWidth - size * 2) - (size * 2)) + size * 2); let y = (Math.random() * ((innerHeight - size * 2) - (size * 2)) + size * 2); let dX = (Math.random() * .4) - 0.2; let dY = (Math.random() * .4) - 0.2; particlesArray.push(new Particle(x, y, dX, dY, size)); } } function connect() { let opacityValue = 1; for (let a = 0; a < particlesArray.length; a++) { for (let b = a; b < particlesArray.length; b++) { let distance = ((particlesArray[a].x - particlesArray[b].x) * (particlesArray[a].x - particlesArray[b].x)) + ((particlesArray[a].y - particlesArray[b].y) * (particlesArray[a].y - particlesArray[b].y)); if (distance < (canvas.width/7) * (canvas.height/7)) { opacityValue = 1 - (distance/20000); ctx.strokeStyle = 'rgba(148, 163, 184,' + opacityValue + ')'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(particlesArray[a].x, particlesArray[a].y); ctx.lineTo(particlesArray[b].x, particlesArray[b].y); ctx.stroke(); } } } } function animate() { requestAnimationFrame(animate); ctx.clearRect(0,0,innerWidth, innerHeight); for (let i = 0; i < particlesArray.length; i++) { particlesArray[i].update(); } connect(); } window.addEventListener('resize', function(){ canvas.width = innerWidth; canvas.height = innerHeight; mouse.radius = ((canvas.height/110) * (canvas.height/110)); initParticles(); }); window.addEventListener('mouseout', function(){ mouse.x = undefined; mouse.y = undefined; }); initParticles(); animate(); }
+    </script>
+</body>
+</html>
